@@ -1,0 +1,15 @@
+{
+    "name": "rawb-abfirst-analyzer",
+    "version": "1.0.0",
+    "description": "A/B Testing Module Analyzer",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "24HR",
+    "license": "ISC",
+    "devDependencies": {
+        "eslint": "^6.5.1",
+        "eslint-24hr": "1.0.5"
+    }
+}
