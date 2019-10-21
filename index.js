@@ -44,7 +44,7 @@ function getAbTestDataFromVcModules(data) {
  * @param {string} cookieHash - If user has visited the page before and already gotten an assignment, that is being saved in a cookie. This is the hash for that cookie.
  * @returns {obj} assignments: Already existing assignments for the given cookie, or newly created assignments. abTestsWithPageAsGoal: The A/B tests that has the visited page as a goal/target for the test.
  */
-async function getAbTestsData(abTestDataFromModules, data, securityHeaders, cookieHash) {
+async function createAssignments(abTestDataFromModules, data, securityHeaders, cookieHash) {
     const body = {
         cookieHash,
         abTests: abTestDataFromModules,
@@ -144,7 +144,7 @@ module.exports = function(settings) {
     constructor(settings);
     return {
         getAbTestDataFromVcModules,
-        getAbTestsData,
+        createAssignments,
         decorateData,
         filterNonAssignedVariants,
     };
