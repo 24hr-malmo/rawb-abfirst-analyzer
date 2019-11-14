@@ -34,6 +34,11 @@ function getAbTestDataFromVcModules(data) {
     return abTests;
 }
 
+async function getAbTestsWithPageAsGoal(data, securityHeaders) {
+    const getTestsWithPageAsGoalUrl = `${AB_TESTS_HOST}/api/ab-tests/goal-page/${data.id}`;
+    return PROXY_HELPER.get(getTestsWithPageAsGoalUrl, securityHeaders);
+}
+
 
 /**
  * Takes A/B Test data extracted from modules and get assignments etc for the specific user for those tests
@@ -63,11 +68,9 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
     };
 
     const url = `${AB_TESTS_HOST}/api/assignments`;
-    const getTestsWithPageAsGoalUrl = `${AB_TESTS_HOST}/api/ab-tests/goal-page/${data.id}`;
-
     const assignmentsPromise = PROXY_HELPER.post(url, body, securityHeaders);
-    const abTestsWithPageAsGoalPromise = PROXY_HELPER.get(getTestsWithPageAsGoalUrl, securityHeaders);
 
+    const abTestsWithPageAsGoalPromise = getAbTestsWithPageAsGoal(data, securityHeaders);
     const [ assignments, abTestsWithPageAsGoal ] = await Promise.all([assignmentsPromise, abTestsWithPageAsGoalPromise]);
 
     return {
@@ -159,6 +162,7 @@ module.exports = function(settings) {
         createAssignments,
         decorateData,
         filterNonAssignedVariants,
+        getAbTestsWithPageAsGoal,
     };
 };
 
