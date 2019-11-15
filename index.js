@@ -34,8 +34,17 @@ function getAbTestDataFromVcModules(data) {
     return abTests;
 }
 
-async function getAbTestsWithPageAsGoal(data, securityHeaders) {
-    const getTestsWithPageAsGoalUrl = `${AB_TESTS_HOST}/api/ab-tests/goal-page/${data.id}`;
+
+/**
+ * Fetch all ab tests that has the visited page as a target
+ *
+ * @param {object} data - needs the page id as key 'id'
+ * @param {} securityHeaders
+ * @param {string} cookieHash - If user has visited the page before he has a cookie with which we can identify his assignments
+ * @returns {object} Object with two properties: {testsWithPageAsGoal: tests, testsWithPageAsGoalAssignments: assignmentsForThoseTests}
+ */
+function getAbTestsWithPageAsGoal(data, securityHeaders, cookieHash) {
+    const getTestsWithPageAsGoalUrl = `${AB_TESTS_HOST}/api/assignments/goal-page/${data.id}/${cookieHash}`;
     return PROXY_HELPER.get(getTestsWithPageAsGoalUrl, securityHeaders);
 }
 
@@ -70,12 +79,15 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
     const url = `${AB_TESTS_HOST}/api/assignments`;
     const assignmentsPromise = PROXY_HELPER.post(url, body, securityHeaders);
 
-    const abTestsWithPageAsGoalPromise = getAbTestsWithPageAsGoal(data, securityHeaders);
-    const [ assignments, abTestsWithPageAsGoal ] = await Promise.all([assignmentsPromise, abTestsWithPageAsGoalPromise]);
+    const abTestsWithPageAsGoalPromise = getAbTestsWithPageAsGoal(data, securityHeaders, cookieHash);
+    const [ assignments, testsWithPageAsGoalData ] = await Promise.all([assignmentsPromise, abTestsWithPageAsGoalPromise]);
+    const { testsWithPageAsGoal, testsWithPageAsGoalAssignments } = testsWithPageAsGoalData;
+
+    const mergedAssignments = assignments.concat(testsWithPageAsGoalAssignments);
 
     return {
-        assignments,
-        abTestsWithPageAsGoal,
+        assignments: mergedAssignments,
+        testsWithPageAsGoal,
     };
 }
 
@@ -90,13 +102,13 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
  * @param {any} origin - The origin from where the data was being added, i.e where this module was being used. Could be 'resource-aggregator'
  * @returns {obj} the modified data
  */
-function decorateData(data, assignments, abTestsWithPageAsGoal, cookieHash, origin) {
-    if ( (!cookieHash && assignments.data.cookieHash) || (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) ) {
+function decorateData(data, assignments = {}, abTestsWithPageAsGoal, cookieHash, origin) {
+    if ( (!cookieHash && assignments.data && assignments.data.cookieHash) || (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) ) {
         data.decorated = data.decorated || {};
         data.decorated.abTests = data.decorated.abTests || {};
 
         // Set a cookie if user didnt already have one, and we got a hash from ab service
-        if (!cookieHash && assignments.data.cookieHash) {
+        if (!cookieHash && assignments.data && assignments.data.cookieHash) {
             data.decorated.abTests.cookieHash = {
                 value: assignments.data.cookieHash,
                 origin: origin
