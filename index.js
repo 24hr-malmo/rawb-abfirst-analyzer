@@ -97,20 +97,21 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
  * Add custom stuff to the data that is to be returned to frontend-server, and maybe then analyzed there and removed before being sent to client.
  *
  * @param {obj} data
- * @param {} assignments
+ * @param {array} assignments
  * @param {} abTestsWithPageAsGoal
- * @param {} cookieHash
+ * @param {} cookie - Cookie from browser
  * @param {any} origin - The origin from where the data was being added, i.e where this module was being used. Could be 'resource-aggregator'
+ * @param {} cookieHash - hash from ab service, to be set as a cookie
  * @returns {obj} the modified data
  */
-function decorateData(data, assignments = {}, abTestsWithPageAsGoal, cookieHash, origin) {
+function decorateData(data, assignments, abTestsWithPageAsGoal, cookie, origin, cookieHash) {
     data.decorated = data.decorated || {};
     data.decorated.abTests = data.decorated.abTests || {};
 
     // Set a cookie if user didnt already have one, and we got a hash from ab service
-    if (!cookieHash && assignments.data && assignments.data.cookieHash) {
+    if (!cookie && cookieHash) {
         data.decorated.abTests.cookieHash = {
-            value: assignments.data.cookieHash,
+            value: cookieHash,
             origin: origin
         };
     }
@@ -120,8 +121,8 @@ function decorateData(data, assignments = {}, abTestsWithPageAsGoal, cookieHash,
     }
 
     // Store all user assignments
-    if (assignments.data && assignments.data.testAssignments) {
-        assignments.data.testAssignments.forEach(assignment => {
+    if (assignments) {
+        assignments.forEach(assignment => {
             data.decorated = data.decorated || {};
             data.decorated.abTests = data.decorated.abTests || {};
             data.decorated.abTests.userAssignments = data.decorated.abTests.userAssignments || [];
