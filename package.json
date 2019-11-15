@@ -1,6 +1,6 @@
 {
     "name": "@24hr/rawb-abfirst-analyzer",
-    "version": "1.3.1",
+    "version": "1.3.5",
     "description": "A/B Testing Module Analyzer",
     "main": "index.js",
     "scripts": {

@@ -41,7 +41,7 @@ function getAbTestDataFromVcModules(data) {
  * @param {object} data - needs the page id as key 'id'
  * @param {} securityHeaders
  * @param {string} cookieHash - If user has visited the page before he has a cookie with which we can identify his assignments
- * @returns {object} Object with two properties: {testsWithPageAsGoal: tests, testsWithPageAsGoalAssignments: assignmentsForThoseTests}
+ * @returns {object} Object with three properties: {testsWithPageAsGoal: [], testsWithPageAsGoalAssignments: [], cookieHash: ''}
  */
 function getAbTestsWithPageAsGoal(data, securityHeaders, cookieHash) {
     const getTestsWithPageAsGoalUrl = `${AB_TESTS_HOST}/api/assignments/goal-page/${data.id}/${cookieHash}`;
@@ -81,12 +81,13 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
 
     const abTestsWithPageAsGoalPromise = getAbTestsWithPageAsGoal(data, securityHeaders, cookieHash);
     const [ assignments, testsWithPageAsGoalData ] = await Promise.all([assignmentsPromise, abTestsWithPageAsGoalPromise]);
-    const { testsWithPageAsGoal, testsWithPageAsGoalAssignments } = testsWithPageAsGoalData;
+    const { testsWithPageAsGoal, testsWithPageAsGoalAssignments } = testsWithPageAsGoalData.data;
 
-    const mergedAssignments = assignments.concat(testsWithPageAsGoalAssignments);
+    // Add the assignments from goalPage, otherwise if user ends up at a target page we wont know if user is part of the test that target page belongs to or not
+    assignments.data.testAssignments.concat(testsWithPageAsGoalAssignments);
 
     return {
-        assignments: mergedAssignments,
+        assignments,
         testsWithPageAsGoal,
     };
 }
@@ -103,22 +104,36 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
  * @returns {obj} the modified data
  */
 function decorateData(data, assignments = {}, abTestsWithPageAsGoal, cookieHash, origin) {
-    if ( (!cookieHash && assignments.data && assignments.data.cookieHash) || (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) ) {
-        data.decorated = data.decorated || {};
-        data.decorated.abTests = data.decorated.abTests || {};
+    data.decorated = data.decorated || {};
+    data.decorated.abTests = data.decorated.abTests || {};
 
-        // Set a cookie if user didnt already have one, and we got a hash from ab service
-        if (!cookieHash && assignments.data && assignments.data.cookieHash) {
-            data.decorated.abTests.cookieHash = {
-                value: assignments.data.cookieHash,
-                origin: origin
-            };
-        }
-
-        if (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) {
-            data.decorated.abTests.testsWithPageAsGoal = abTestsWithPageAsGoal.data;
-        }
+    // Set a cookie if user didnt already have one, and we got a hash from ab service
+    if (!cookieHash && assignments.data && assignments.data.cookieHash) {
+        data.decorated.abTests.cookieHash = {
+            value: assignments.data.cookieHash,
+            origin: origin
+        };
     }
+
+    if (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) {
+        data.decorated.abTests.testsWithPageAsGoal = abTestsWithPageAsGoal.data;
+    }
+
+    // Store all user assignments
+    if (assignments.data && assignments.data.testAssignments) {
+        assignments.data.testAssignments.forEach(assignment => {
+            data.decorated = data.decorated || {};
+            data.decorated.abTests = data.decorated.abTests || {};
+            data.decorated.abTests.userAssignments = data.decorated.abTests.userAssignments || [];
+            data.decorated.abTests.userAssignments.push({
+                abTestUuid: assignment.testUuid,
+                abTestName: assignment.testName,
+                variant: assignment.variant,
+                participant: assignment.participant,
+            });
+        });
+    }
+
     return data;
 }
 
@@ -139,15 +154,6 @@ function filterNonAssignedVariants(data, assignments) {
 
 
                 if (assignment && assignment.variant === atts.ab_first.ab_test_variant_name) {
-                    data.decorated = data.decorated || {};
-                    data.decorated.abTests = data.decorated.abTests || {};
-                    data.decorated.abTests.userAssignments = data.decorated.abTests.userAssignments || [];
-                    data.decorated.abTests.userAssignments.push({
-                        abTestUuid: atts.ab_first.ab_test_uuid,
-                        abTestName: assignment.testName,
-                        variant: assignment.variant,
-                        participant: assignment.participant,
-                    });
                     return true;
                 }
 
