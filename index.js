@@ -116,8 +116,8 @@ function decorateData(data, assignments, abTestsWithPageAsGoal, cookie, origin, 
         };
     }
 
-    if (abTestsWithPageAsGoal && abTestsWithPageAsGoal.data && abTestsWithPageAsGoal.data.length > 0) {
-        data.decorated.abTests.testsWithPageAsGoal = abTestsWithPageAsGoal.data;
+    if (abTestsWithPageAsGoal && abTestsWithPageAsGoal.length > 0) {
+        data.decorated.abTests.testsWithPageAsGoal = abTestsWithPageAsGoal;
     }
 
     // Store all user assignments
