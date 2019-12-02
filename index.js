@@ -58,7 +58,7 @@ function getAbTestsWithPageAsGoal(data, securityHeaders, cookieHash) {
  * @param {string} cookieHash - If user has visited the page before and already gotten an assignment, that is being saved in a cookie. This is the hash for that cookie.
  * @param {object} query - parsed query
  * @param {string} queryString - raw query
- * @returns {obj} assignments: Already existing assignments for the given cookie, or newly created assignments. abTestsWithPageAsGoal: The A/B tests that has the visited page as a goal/target for the test.
+ * @returns {obj} assignments: Already existing assignments for the given cookie, or newly created assignments. abTestsWithPageAsGoal: Obj - The A/B tests that has the visited page as a goal/target for the test.
  */
 async function createAssignments(abTestDataFromModules, data, securityHeaders, cookieHash, query, queryString) {
     // Special case if its a preview request
@@ -67,6 +67,7 @@ async function createAssignments(abTestDataFromModules, data, securityHeaders, c
         const assignments = await PROXY_HELPER.post(url, {}, securityHeaders);
         return {
             assignments,
+            testsWithPageAsGoal: {},
         };
     }
 
