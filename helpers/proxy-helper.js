@@ -1,5 +1,7 @@
 'use strict';
 
+const fetch = require('node-fetch');
+
 exports.init = (apiToken) => {
 
     const baseOptions = {
