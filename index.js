@@ -1,11 +1,28 @@
-const vcHelper = require('./helpers/vc-helper');
+const moduleHelper = require('./helpers/module-helper');
 const ProxyHelper = require('./helpers/proxy-helper');
 let AB_TESTS_HOST;
 let API_TOKEN;
 let PROXY_HELPER;
 
+
+function getAbTestDataFromContent(data) {
+    // Look for gutenberg data and tests first
+    const gutentbergTests = getAbTestDataFromGutenbergBlocks(data);
+    if (gutentbergTests && Object.keys(gutentbergTests).length !== 0) {
+        return gutentbergTests;
+    }
+
+    // Then for WP Bakery/Visual Composer
+    const vcTests = getAbTestDataFromVcModules(data);
+    if (vcTests && Object.keys(vcTests).length !== 0) {
+        return vcTests;
+    }
+
+    return {};
+}
+
 /**
- * Takes data from Visual Composer and search through each module for A/B Test data and extract that data if found.
+ * Takes page data and search through it for Visual Composer Modules, then search those Modules for A/B Test data and extract that data if found.
  *
  * @param {obj} data
  * @returns {obj} Object with this shape: {
@@ -14,7 +31,7 @@ let PROXY_HELPER;
  * }
  */
 function getAbTestDataFromVcModules(data) {
-    const modules = vcHelper.findVcItems(data['vc_content'], 'vc_row', 'button');
+    const modules = moduleHelper.findModule(data['vc_content'], 'vc_row', 'button');
 
     let abTests = {};
     if (modules) {
@@ -27,6 +44,36 @@ function getAbTestDataFromVcModules(data) {
                 abTests[abTestUuid].push({
                     testUuid: abTestUuid,
                     variantName: module.attributes.ab_first.ab_test_variant_name,
+                });
+            }
+        });
+    }
+    return abTests;
+}
+
+/**
+ * Takes page data and search through it for Gutenberg Blocks, then search those Blocks for A/B Test data and extract that data if found.
+ *
+ * @param {obj} data
+ * @returns {obj} Object with this shape: {
+ *     'someAbTestUuid': {'testUuid': 'someAbTestUuid', 'variantName': 'A' },
+ *     'someOtherAbTestUuid': {'testUuid': 'someOtherAbTestUuid', 'variantName': 'B'}
+ * }
+ */
+function getAbTestDataFromGutenbergBlocks(data) {
+    const modules = moduleHelper.findModule(data['blocks'], 'next24hr/section', 'button');
+
+    let abTests = {};
+    if (modules) {
+        modules.forEach((module) => {
+            if (module.ab_first && module.ab_first.use_ab_testing) {
+                const abTestUuid = module.ab_first.ab_test_uuid;
+                if (!abTests[abTestUuid]) {
+                    abTests[abTestUuid] = [];
+                }
+                abTests[abTestUuid].push({
+                    testUuid: abTestUuid,
+                    variantName: module.ab_first.ab_test_variant_name,
                 });
             }
         });
@@ -140,7 +187,8 @@ function decorateData(data, assignments, abTestsWithPageAsGoal, cookie, origin, 
 }
 
 /**
- * takes data from Visual Composer and remove all the rows/variants that has A/B Tests attached to it except for the one that has been assigned to the user.
+ * takes data from a page and remove all the rows/variants that has A/B Tests attached to it except for the one that has been assigned to the user.
+ * Will check for both Gutenberg blocks and VC Modules
  *
  * @param {obj} data
  * @param {obj} assignments - all the user assignments for the A/B Tests that are on the page user is visiting
@@ -148,29 +196,57 @@ function decorateData(data, assignments, abTestsWithPageAsGoal, cookie, origin, 
  */
 function filterNonAssignedVariants(data, assignments) {
 
-    data['vc_content'] = data['vc_content'].filter((module) => {
-        if (module.name === 'vc_row') {
-            const atts = module.attributes;
-            if (atts.ab_first && atts.ab_first.use_ab_testing && assignments.data.testAssignments) {
-                const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === atts.ab_first.ab_test_uuid);
+    if (data['blocks']) {
+        data['blocks'] = data['blocks'].filter((module) => {
+            if (module.blockName === 'next24hr/section') {
+                if (module.ab_first && module.ab_first.use_ab_testing && assignments.data.testAssignments) {
+                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === module.ab_first.ab_test_uuid);
 
 
-                if (assignment && assignment.variant === atts.ab_first.ab_test_variant_name) {
-                    return true;
+                    if (assignment && assignment.variant === module.ab_first.ab_test_variant_name) {
+                        return true;
+                    }
+
+                    if (!assignment && module.ab_first.ab_test_variant_name === 'original') {
+                        // If no assignment were found for this Ab Test.
+                        // This could happen if the test isnt "live" yet. In those cases, we only show original
+                        return true;
+                    }
+
+                    return false;
                 }
-
-                if (!assignment && atts.ab_first.ab_test_variant_name === 'original') {
-                    // If no assignment were found for this Ab Test.
-                    // This could happen if the test isnt "live" yet. In those cases, we only show original
-                    return true;
-                }
-
-                return false;
+                return true;
             }
             return true;
-        }
-        return true;
-    });
+        });
+    }
+
+
+    if (data['vc_content']) {
+        data['vc_content'] = data['vc_content'].filter((module) => {
+            if (module.name === 'vc_row') {
+                const atts = module.attributes;
+                if (atts.ab_first && atts.ab_first.use_ab_testing && assignments.data.testAssignments) {
+                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === atts.ab_first.ab_test_uuid);
+
+
+                    if (assignment && assignment.variant === atts.ab_first.ab_test_variant_name) {
+                        return true;
+                    }
+
+                    if (!assignment && atts.ab_first.ab_test_variant_name === 'original') {
+                        // If no assignment were found for this Ab Test.
+                        // This could happen if the test isnt "live" yet. In those cases, we only show original
+                        return true;
+                    }
+
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        });
+    }
 
     return data;
 }
@@ -183,6 +259,7 @@ module.exports = function(settings) {
         decorateData,
         filterNonAssignedVariants,
         getAbTestsWithPageAsGoal,
+        getAbTestDataFromContent,
     };
 };
 
