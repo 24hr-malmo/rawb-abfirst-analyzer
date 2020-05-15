@@ -36,14 +36,14 @@ function getAbTestDataFromVcModules(data) {
     let abTests = {};
     if (modules) {
         modules.forEach((module) => {
-            if (module.attributes.ab_first && module.attributes.ab_first.use_ab_testing) {
-                const abTestUuid = module.attributes.ab_first.ab_test_uuid;
+            if (module.attributes.abFirst && module.attributes.abFirst.useAbTesting) {
+                const abTestUuid = module.attributes.abFirst.abTestUuid;
                 if (!abTests[abTestUuid]) {
                     abTests[abTestUuid] = [];
                 }
                 abTests[abTestUuid].push({
                     testUuid: abTestUuid,
-                    variantName: module.attributes.ab_first.ab_test_variant_name,
+                    variantName: module.attributes.abFirst.abTestVariantName,
                 });
             }
         });
@@ -226,15 +226,14 @@ function filterNonAssignedVariants(data, assignments) {
         data['vc_content'] = data['vc_content'].filter((module) => {
             if (module.name === 'vc_row') {
                 const atts = module.attributes;
-                if (atts.ab_first && atts.ab_first.use_ab_testing && assignments.data.testAssignments) {
-                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === atts.ab_first.ab_test_uuid);
+                if (atts.abFirst && atts.abFirst.useAbTesting && assignments.data.testAssignments) {
+                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === atts.abFirst.abTestUuid);
 
-
-                    if (assignment && assignment.variant === atts.ab_first.ab_test_variant_name) {
+                    if (assignment && assignment.variant === atts.abFirst.abTestVariantName) {
                         return true;
                     }
 
-                    if (!assignment && atts.ab_first.ab_test_variant_name === 'original') {
+                    if (!assignment && atts.abFirst.abTestVariantName === 'original') {
                         // If no assignment were found for this Ab Test.
                         // This could happen if the test isnt "live" yet. In those cases, we only show original
                         return true;
