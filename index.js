@@ -66,14 +66,14 @@ function getAbTestDataFromGutenbergBlocks(data) {
     let abTests = {};
     if (modules) {
         modules.forEach((module) => {
-            if (module.ab_first && module.ab_first.use_ab_testing) {
-                const abTestUuid = module.ab_first.ab_test_uuid;
+            if (module.abFirst && module.abFirst.useAbTesting) {
+                const abTestUuid = module.abFirst.abTestUuid;
                 if (!abTests[abTestUuid]) {
                     abTests[abTestUuid] = [];
                 }
                 abTests[abTestUuid].push({
                     testUuid: abTestUuid,
-                    variantName: module.ab_first.ab_test_variant_name,
+                    variantName: module.abFirst.abTestVariantName,
                 });
             }
         });
@@ -199,15 +199,15 @@ function filterNonAssignedVariants(data, assignments) {
     if (data['blocks']) {
         data['blocks'] = data['blocks'].filter((module) => {
             if (module.blockName === 'next24hr/section') {
-                if (module.ab_first && module.ab_first.use_ab_testing && assignments.data.testAssignments) {
-                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === module.ab_first.ab_test_uuid);
+                if (module.abFirst && module.abFirst.useAbTesting && assignments.data.testAssignments) {
+                    const assignment = assignments.data.testAssignments.find(assignment => assignment.testUuid === module.abFirst.abTestUuid);
 
 
-                    if (assignment && assignment.variant === module.ab_first.ab_test_variant_name) {
+                    if (assignment && assignment.variant === module.abFirst.abTestVariantName) {
                         return true;
                     }
 
-                    if (!assignment && module.ab_first.ab_test_variant_name === 'original') {
+                    if (!assignment && module.abFirst.abTestVariantName === 'original') {
                         // If no assignment were found for this Ab Test.
                         // This could happen if the test isnt "live" yet. In those cases, we only show original
                         return true;
