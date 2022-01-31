@@ -1,5 +1,5 @@
 const findNodes = (content, findFunction) => {
-    if (!content) {
+    if (!content || !Array.isArray(content)) {
         return;
     }
 
