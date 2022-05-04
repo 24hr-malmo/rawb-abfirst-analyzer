@@ -5,15 +5,15 @@ let API_TOKEN;
 let PROXY_HELPER;
 
 
-function getAbTestDataFromContent(data) {
+function getAbTestDataFromContent(data, blockNames) {
     // Look for gutenberg data and tests first
-    const gutentbergTests = getAbTestDataFromGutenbergBlocks(data);
+    const gutentbergTests = getAbTestDataFromGutenbergBlocks(data, blockNames);
     if (gutentbergTests && Object.keys(gutentbergTests).length !== 0) {
         return gutentbergTests;
     }
 
     // Then for WP Bakery/Visual Composer
-    const vcTests = getAbTestDataFromVcModules(data);
+    const vcTests = getAbTestDataFromVcModules(data, blockNames);
     if (vcTests && Object.keys(vcTests).length !== 0) {
         return vcTests;
     }
@@ -25,13 +25,14 @@ function getAbTestDataFromContent(data) {
  * Takes page data and search through it for Visual Composer Modules, then search those Modules for A/B Test data and extract that data if found.
  *
  * @param {obj} data
+ * @param {string[]} blockNames - Additional blocks to look for.
  * @returns {obj} Object with this shape: {
  *     'someAbTestUuid': {'testUuid': 'someAbTestUuid', 'variantName': 'A' },
  *     'someOtherAbTestUuid': {'testUuid': 'someOtherAbTestUuid', 'variantName': 'B'}
  * }
  */
-function getAbTestDataFromVcModules(data) {
-    const modules = moduleHelper.findModule(data['vc_content'], 'vc_row', 'button');
+function getAbTestDataFromVcModules(data, blockNames = []) {
+    const modules = moduleHelper.findModule(data['vc_content'], 'vc_row', 'button', ...blockNames);
 
     let abTests = {};
     if (modules) {
@@ -55,13 +56,14 @@ function getAbTestDataFromVcModules(data) {
  * Takes page data and search through it for Gutenberg Blocks, then search those Blocks for A/B Test data and extract that data if found.
  *
  * @param {obj} data
+ * @param {string[]} blockNames - Additional blocks to look for.
  * @returns {obj} Object with this shape: {
  *     'someAbTestUuid': {'testUuid': 'someAbTestUuid', 'variantName': 'A' },
  *     'someOtherAbTestUuid': {'testUuid': 'someOtherAbTestUuid', 'variantName': 'B'}
  * }
  */
-function getAbTestDataFromGutenbergBlocks(data) {
-    const modules = moduleHelper.findModule(data['blocks'], 'next24hr/section', 'button');
+function getAbTestDataFromGutenbergBlocks(data, blockNames = []) {
+    const modules = moduleHelper.findModule(data['blocks'], 'next24hr/section', 'button', ...blockNames);
 
     let abTests = {};
     if (modules) {
