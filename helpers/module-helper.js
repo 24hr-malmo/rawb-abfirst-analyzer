@@ -6,12 +6,10 @@ const findNodes = (content, findFunction) => {
     let found = [];
 
     content.forEach(item => {
-        const children = item.blocks || item.children;
         if (findFunction(item)) {
             found.push(item);
-        }
-        if (children) {
-            const subFound = findNodes(children, findFunction);
+        } else if (item.children) {
+            const subFound = findNodes(item.children, findFunction);
             found.push.apply(found, subFound);
         }
     });
