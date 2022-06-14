@@ -36,19 +36,15 @@ function getAbTestDataFromVcModules(data) {
     let abTests = {};
     if (modules) {
         modules.forEach((module) => {
-            const abFirst = module.attributes.abFirst || module.attributes.abFirstGoal;
-            if (abFirst) {
-                const useAbTesting = abFirst.useAbTesting || abFirst.useAsGoal;
-                if (useAbTesting) {
-                    const abTestUuid = abFirst.abTestUuid;
-                    if (!abTests[abTestUuid]) {
-                        abTests[abTestUuid] = [];
-                    }
-                    abTests[abTestUuid].push({
-                        testUuid: abTestUuid,
-                        variantName: abFirst.abTestVariantName,
-                    });
+            if (module.attributes.abFirst && module.attributes.abFirst.useAbTesting) {
+                const abTestUuid = module.attributes.abFirst.abTestUuid;
+                if (!abTests[abTestUuid]) {
+                    abTests[abTestUuid] = [];
                 }
+                abTests[abTestUuid].push({
+                    testUuid: abTestUuid,
+                    variantName: module.attributes.abFirst.abTestVariantName,
+                });
             }
         });
     }
@@ -70,19 +66,15 @@ function getAbTestDataFromGutenbergBlocks(data) {
     let abTests = {};
     if (modules) {
         modules.forEach((module) => {
-            const abFirst = module.abFirst || module.abFirstGoal;
-            if (abFirst) {
-                const useAbTesting = abFirst.useAbTesting || abFirst.useAsGoal;
-                if (useAbTesting) {
-                    const abTestUuid = abFirst.abTestUuid;
-                    if (!abTests[abTestUuid]) {
-                        abTests[abTestUuid] = [];
-                    }
-                    abTests[abTestUuid].push({
-                        testUuid: abTestUuid,
-                        variantName: abFirst.abTestVariantName,
-                    });
+            if (module.abFirst && module.abFirst.useAbTesting) {
+                const abTestUuid = module.abFirst.abTestUuid;
+                if (!abTests[abTestUuid]) {
+                    abTests[abTestUuid] = [];
                 }
+                abTests[abTestUuid].push({
+                    testUuid: abTestUuid,
+                    variantName: module.abFirst.abTestVariantName,
+                });
             }
         });
     }
